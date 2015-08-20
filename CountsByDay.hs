@@ -2,6 +2,7 @@ import Utmp
 
 import Control.Monad
 import Data.Function
+import Data.Functor
 import Data.List
 import Data.Time.Clock
 import System.Environment

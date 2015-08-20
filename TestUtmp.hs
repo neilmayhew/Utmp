@@ -1,3 +1,5 @@
+{-# LANGUAGE CPP #-}
+
 import Utmp
 
 import Control.Applicative
@@ -22,6 +24,10 @@ main = do
 
         when (before /= after) $ hPutStrLn stderr "before /= after"
 
+#if MIN_VERSION_binary(0,7,0)
         case runGetOrFail (many get) bytes of
             Left (_, offset, err) -> hPutStrLn stderr $ printf "%s at %d" err offset
             Right (_, _, us) -> mapM_ print (us :: [Utmp])
+#else
+        mapM_ print (runGet getMany bytes :: [Utmp])
+#endif

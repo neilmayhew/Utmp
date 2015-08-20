@@ -12,6 +12,7 @@ import Data.Maybe
 import Data.Ratio
 import Data.Word
 import Data.Time
+import Data.Time.Format
 import Data.Time.Clock.POSIX
 import Foreign.C.String
 import Foreign.C.Types
@@ -22,6 +23,9 @@ import Foreign.Ptr
 import Foreign.Storable
 import Network.Socket
 import System.IO.Unsafe
+#if !MIN_VERSION_time(1,5,0)
+import System.Locale
+#endif
 import Text.Printf
 
 import qualified Data.ByteString.Char8 as B
@@ -210,6 +214,8 @@ instance Binary Utmp where
         putAddr                                 $ utAddr    u
         replicateM_ 20 (putWord8 0) -- Reserved padding
 
+#if MIN_VERSION_binary(0,7,0)
+
 decodeFileOrFail :: FilePath -> IO (Either (ByteOffset, String) [Utmp])
 decodeFileOrFail f = do
     r <- runGetOrFail (many get) <$> L.readFile f
@@ -223,3 +229,18 @@ decodeFile f = do
     case r of
         Left (_, msg) -> error msg
         Right us      -> return us
+
+#else
+
+getMany = do
+    finished <- isEmpty
+    if finished
+    then return []
+    else do
+        next <- get
+        (next:) <$> getMany
+
+decodeFile :: FilePath -> IO [Utmp]
+decodeFile f = runGet getMany <$> L.readFile f
+
+#endif
