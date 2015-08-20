@@ -21,3 +21,8 @@ executable TestUtmp
   main-is:             TestUtmp.hs
   build-depends:       Utmp, base, network, time, binary, bytestring
   default-language:    Haskell2010
+
+executable CountsByDay
+  main-is:             CountsByDay.hs
+  build-depends:       Utmp, base, network, time, binary, bytestring
+  default-language:    Haskell2010
