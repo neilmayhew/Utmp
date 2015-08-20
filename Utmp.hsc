@@ -12,8 +12,9 @@ import Data.Maybe
 import Data.Ratio
 import Data.Word
 import Data.Time
-import Data.Time.Format
 import Data.Time.Clock.POSIX
+import Data.Time.Format
+import Data.Time.Locale.Compat
 import Foreign.C.String
 import Foreign.C.Types
 import Foreign.Marshal.Alloc
@@ -23,9 +24,6 @@ import Foreign.Ptr
 import Foreign.Storable
 import Network.Socket
 import System.IO.Unsafe
-#if !MIN_VERSION_time(1,5,0)
-import System.Locale
-#endif
 import Text.Printf
 
 import qualified Data.ByteString.Char8 as B
