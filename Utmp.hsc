@@ -4,10 +4,9 @@ module Utmp where
 
 import Control.Applicative
 import Control.Monad
-import Data.Binary
+import Data.Binary hiding (decodeFile, decodeFileOrFail)
 import Data.Binary.Get
 import Data.Binary.Put
-import Data.ByteString.Char8 as B hiding (map, unwords)
 import Data.Int
 import Data.Maybe
 import Data.Ratio
@@ -24,6 +23,9 @@ import Foreign.Storable
 import Network.Socket
 import System.IO.Unsafe
 import Text.Printf
+
+import qualified Data.ByteString.Char8 as B
+import qualified Data.ByteString.Lazy  as L
 
 #include <utmp.h>
 
@@ -96,16 +98,16 @@ instance Binary ExitStatus where
     put (ExitStatus t e) = putWord16host t >> putWord16host e
 
 data Utmp = Utmp
-    { utType    :: LoginType    -- Type of login
-    , utPid     :: ProcessID    -- Process ID of login process
-    , utLine    :: ByteString   -- Devicename
-    , utId      :: ByteString   -- Inittab ID
-    , utUser    :: ByteString   -- Username
-    , utHost    :: ByteString   -- Hostname for remote login
-    , utExit    :: ExitStatus   -- Exit status of a process marked as DeadProcess
-    , utSession :: Int64        -- Session ID, used for windowing
-    , utTime    :: UTCTime      -- Time entry was made
-    , utAddr    :: HostAddress6 -- Internet address of remote host (first word is IPv4 addr)
+    { utType    :: LoginType      -- Type of login
+    , utPid     :: ProcessID      -- Process ID of login process
+    , utLine    :: B.ByteString   -- Devicename
+    , utId      :: B.ByteString   -- Inittab ID
+    , utUser    :: B.ByteString   -- Username
+    , utHost    :: B.ByteString   -- Hostname for remote login
+    , utExit    :: ExitStatus     -- Exit status of a process marked as DeadProcess
+    , utSession :: Int64          -- Session ID, used for windowing
+    , utTime    :: UTCTime        -- Time entry was made
+    , utAddr    :: HostAddress6   -- Internet address of remote host (first word is IPv4 addr)
     } deriving (Eq)
 
 instance Show Utmp where
@@ -139,10 +141,10 @@ instance Storable Utmp where
     peek p      = Utmp
         <$> (                 (#{peek struct utmp, ut_type          } p))
         <*> (fromIntegral <$> (#{peek struct utmp, ut_pid           } p :: IO CUInt))
-        <*> (packCString   $  (#{ptr  struct utmp, ut_line          } p))
-        <*> (packCString   $  (#{ptr  struct utmp, ut_id            } p))
-        <*> (packCString   $  (#{ptr  struct utmp, ut_user          } p))
-        <*> (packCString   $  (#{ptr  struct utmp, ut_host          } p))
+        <*> (B.packCString $  (#{ptr  struct utmp, ut_line          } p))
+        <*> (B.packCString $  (#{ptr  struct utmp, ut_id            } p))
+        <*> (B.packCString $  (#{ptr  struct utmp, ut_user          } p))
+        <*> (B.packCString $  (#{ptr  struct utmp, ut_host          } p))
         <*> (                 (#{peek struct utmp, ut_exit          } p))
         <*> (fromIntegral <$> (#{peek struct utmp, ut_session       } p :: IO IntCompat))
         <*> (fromTimeval  <$> (#{peek struct utmp, ut_tv.tv_sec     } p :: IO IntCompat)
@@ -207,3 +209,17 @@ instance Binary Utmp where
         put                                     $ utTime    u
         putAddr                                 $ utAddr    u
         replicateM_ 20 (putWord8 0) -- Reserved padding
+
+decodeFileOrFail :: FilePath -> IO (Either (ByteOffset, String) [Utmp])
+decodeFileOrFail f = do
+    r <- runGetOrFail (many get) <$> L.readFile f
+    return $ case r of
+        Left (_, offset, err) -> Left (offset, err)
+        Right (_, _, us)      -> Right us
+
+decodeFile :: FilePath -> IO [Utmp]
+decodeFile f = do
+    r <- decodeFileOrFail f
+    case r of
+        Left (_, msg) -> error msg
+        Right us      -> return us
