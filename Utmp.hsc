@@ -91,11 +91,10 @@ data Utmp = Utmp
 
 instance Show Utmp where
     show u = unwords . map wrap . map ($u) $
-        [show . fromEnum . utType, showPid . utPid, B.unpack . utId, B.unpack . utUser,
-            B.unpack . utLine, B.unpack . utHost, showAddr . utAddr, showTime . utTime]
+        [show . utType, show . utPid,
+            B.unpack . utId, B.unpack . utUser, B.unpack . utLine, B.unpack . utHost,
+            showAddr . utAddr, showTime . utTime]
       where wrap s = '[' : (s ++ "]")
-
-showPid = printf "%05d"
 
 showAddr :: HostAddress6 -> String
 showAddr (0,0,0,0) = ""
