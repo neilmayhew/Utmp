@@ -48,35 +48,12 @@ data LoginType
 instance Storable LoginType where
     sizeOf _    = sizeOf    (undefined :: CUShort)
     alignment _ = alignment (undefined :: CUShort)
-    peek p      = do
-        n <- peek (castPtr p :: Ptr CUShort)
-        let t = case n of
-                #{const EMPTY        } -> Empty
-                #{const RUN_LVL      } -> RunLvl
-                #{const BOOT_TIME    } -> BootTime
-                #{const NEW_TIME     } -> NewTime
-                #{const OLD_TIME     } -> OldTime
-                #{const INIT_PROCESS } -> InitProcess
-                #{const LOGIN_PROCESS} -> LoginProcess
-                #{const USER_PROCESS } -> UserProcess
-                #{const DEAD_PROCESS } -> DeadProcess
-                #{const ACCOUNTING   } -> Accounting
-                _                      -> Undefined
-        return t
-    poke p t    = do
-        let n = case t of
-                Empty            -> #{const EMPTY        }
-                RunLvl           -> #{const RUN_LVL      }
-                BootTime         -> #{const BOOT_TIME    }
-                NewTime          -> #{const NEW_TIME     }
-                OldTime          -> #{const OLD_TIME     }
-                InitProcess      -> #{const INIT_PROCESS }
-                LoginProcess     -> #{const LOGIN_PROCESS}
-                UserProcess      -> #{const USER_PROCESS }
-                DeadProcess      -> #{const DEAD_PROCESS }
-                Accounting       -> #{const ACCOUNTING   }
-                Undefined        -> #{const EMPTY        }
-        poke (castPtr p :: Ptr CUShort) n
+    peek p      = toEnum . fromIntegral <$> peek (castPtr p :: Ptr CUShort)
+    poke p      = poke (castPtr p :: Ptr CUShort) . fromIntegral . fromEnum
+
+instance Binary LoginType where
+    get = toEnum . fromIntegral <$> getWord16host
+    put = putWord16host . fromIntegral . fromEnum
 
 type ProcessID = Word32
 
@@ -186,7 +163,7 @@ putAddr (a,b,c,d) = putWord32host a >> putWord32host b >> putWord32host c >> put
 
 instance Binary Utmp where
     get = Utmp
-        <$> (toEnum . fromIntegral <$> getWord16host)
+        <$> get
         <*  getWord16host -- Structure alignment
         <*> getWord32host
         <*> getByteStringNP #{const UT_LINESIZE}
@@ -199,7 +176,7 @@ instance Binary Utmp where
         <*> getAddr
         <*  replicateM_ 20 getWord8 -- Reserved padding
     put u = do
-        putWord16host . fromIntegral . fromEnum $ utType    u
+        put                                     $ utType    u
         putWord16host 0 -- Structure alignment
         putWord32host                           $ utPid     u
         putByteStringNP #{const UT_LINESIZE}    $ utLine    u
