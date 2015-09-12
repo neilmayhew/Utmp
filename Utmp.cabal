@@ -33,3 +33,10 @@ executable CountsSince
   other-extensions:    CPP
   build-depends:       Utmp, base, network, time, binary, bytestring, time-locale-compat
   default-language:    Haskell2010
+
+executable BadLogins
+  main-is:             BadLogins.hs
+  build-depends:       Utmp, base, network, time, binary, bytestring,
+                       directory,
+                       optparse-applicative
+  default-language:    Haskell2010
