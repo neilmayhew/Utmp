@@ -20,23 +20,23 @@ library
 executable TestUtmp
   main-is:             TestUtmp.hs
   other-extensions:    CPP
-  build-depends:       Utmp, base, network, time, binary, bytestring
+  build-depends:       Utmp, base, binary, bytestring
   default-language:    Haskell2010
 
 executable CountsByDay
   main-is:             CountsByDay.hs
-  build-depends:       Utmp, base, network, time, binary, bytestring
+  build-depends:       Utmp, base, time
   default-language:    Haskell2010
 
 executable CountsSince
   main-is:             CountsSince.hs
   other-extensions:    CPP
-  build-depends:       Utmp, base, network, time, binary, bytestring, time-locale-compat
+  build-depends:       Utmp, base, time, time-locale-compat
   default-language:    Haskell2010
 
 executable BadLogins
   main-is:             BadLogins.hs
-  build-depends:       Utmp, base, network, time, binary, bytestring,
+  build-depends:       Utmp, base, time,
                        directory,
                        optparse-applicative
   default-language:    Haskell2010
