@@ -13,7 +13,7 @@ cabal-version:       >=1.10
 library
   exposed-modules:     Utmp
   other-extensions:    CPP, ForeignFunctionInterface
-  build-depends:       base, network, time, binary, bytestring, time-locale-compat
+  build-depends:       base, network, time, binary, bytestring, text, time-locale-compat
   build-tools:         hsc2hs
   default-language:    Haskell2010
 

@@ -11,6 +11,8 @@ import Data.Int
 import Data.Maybe
 import Data.Ratio
 import Data.Word
+import Data.Text as T (unpack)
+import Data.Text.Encoding (decodeUtf8)
 import Data.Time
 import Data.Time.Clock.POSIX
 import Data.Time.Format
@@ -92,9 +94,10 @@ data Utmp = Utmp
 instance Show Utmp where
     show u = unwords . map wrap . map ($u) $
         [show . utType, show . utPid,
-            B.unpack . utId, B.unpack . utUser, B.unpack . utLine, B.unpack . utHost,
+            unpack . utId, unpack . utUser, unpack . utLine, unpack . utHost,
             showAddr . utAddr, showTime . utTime]
       where wrap s = '[' : (s ++ "]")
+            unpack = T.unpack . decodeUtf8
 
 showAddr :: HostAddress6 -> String
 showAddr (0,0,0,0) = ""
