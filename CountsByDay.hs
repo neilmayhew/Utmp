@@ -4,6 +4,7 @@ import Control.Monad
 import Data.Function
 import Data.Functor
 import Data.List
+import Data.Time
 import Data.Time.Clock
 import System.Environment
 import Text.Printf
@@ -12,11 +13,14 @@ import Text.Printf
 
 main = do
     logins <- concat <$> (mapM decodeFile =<< getArgs)
+    days <- mapM (utcToLocalDay . utTime) logins
 
-    let days = groupBy ((==) `on` utctDay . utTime) $ logins
+    forM_ (group . sort $ days) $ \d -> do
+        let n = length d
+        putStrLn $ printf "%s %d" (show $ head d) n
 
-    forM_ days $ \ls -> do
-        let n = length ls
-        putStrLn $ printf "%s %d" (show . utctDay . utTime $ head ls) n
+    putStrLn $ printf "%10s %d" "" $ length days
 
-    putStrLn $ printf "%10s %d" "" $ length logins
+utcToLocalDay t = do
+    z <- getTimeZone t -- current location +/- DST at the time
+    return . localDay . utcToLocalTime z $ t
