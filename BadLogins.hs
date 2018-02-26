@@ -3,6 +3,7 @@ module Main where
 import Utmp
 
 import Control.Monad
+import Data.Semigroup ((<>))
 import Data.Time
 import Data.Time.Clock.POSIX
 import Options.Applicative

@@ -24,6 +24,7 @@ import Foreign.Marshal.Array
 import Foreign.Marshal.Utils
 import Foreign.Ptr
 import Foreign.Storable
+import Foreign.Storable.Tuple
 import Network.Socket
 import System.IO.Unsafe
 import Text.Printf
