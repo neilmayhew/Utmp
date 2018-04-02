@@ -111,7 +111,7 @@ sockAddrHost = fromMaybe "" . fst . unsafePerformIO . getNameInfo [NI_NUMERICHOS
 showTime :: UTCTime -> String
 showTime = formatTime defaultTimeLocale "%a %b %d %T %0Y %Z"
 
-#ifdef __WORDSIZE_TIME64_COMPAT32
+#if __WORDSIZE_TIME64_COMPAT32
 type IntCompat = Int32
 #else
 type IntCompat = Int64
@@ -138,7 +138,7 @@ instance Storable Utmp where
 getByteStringNP n = B.takeWhile (/='\0') <$> getByteString n
 putByteStringNP n s = putByteString s >> replicateM_ (n - B.length s) (putWord8 0)
 
-#ifdef __WORDSIZE_TIME64_COMPAT32
+#if __WORDSIZE_TIME64_COMPAT32
 getWordCompat = fromIntegral <$> getWord32host
 putWordCompat = putWord32host . fromIntegral
 #else
