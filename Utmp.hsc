@@ -117,26 +117,56 @@ type IntCompat = Int32
 type IntCompat = Int64
 #endif
 
+type TimevalCompat = (IntCompat, IntCompat)
+
 instance Storable Utmp where
     sizeOf _    = #{size struct utmp}
     alignment _ = alignment (undefined :: Int64)
     peek p      = Utmp
-        <$> (                 (#{peek struct utmp, ut_type          } p))
-        <*> (fromIntegral <$> (#{peek struct utmp, ut_pid           } p :: IO CUInt))
-        <*> (B.packCString $  (#{ptr  struct utmp, ut_line          } p))
-        <*> (B.packCString $  (#{ptr  struct utmp, ut_id            } p))
-        <*> (B.packCString $  (#{ptr  struct utmp, ut_user          } p))
-        <*> (B.packCString $  (#{ptr  struct utmp, ut_host          } p))
-        <*> (                 (#{peek struct utmp, ut_exit          } p))
-        <*> (fromIntegral <$> (#{peek struct utmp, ut_session       } p :: IO IntCompat))
-        <*> (fromTimeval  <$> (#{peek struct utmp, ut_tv.tv_sec     } p :: IO IntCompat)
-                          <*> (#{peek struct utmp, ut_tv.tv_usec    } p :: IO IntCompat))
-        <*> (                 (#{peek struct utmp, ut_addr_v6       } p))
-    poke p u = return ()
+        <$> (                 (#{peek struct utmp, ut_type   } p))
+        <*> (fromIntegral <$> (#{peek struct utmp, ut_pid    } p :: IO #{type pid_t}))
+        <*> (peekByteStringNP (#{ptr  struct utmp, ut_line   } p, #{const UT_LINESIZE}))
+        <*> (peekByteStringNP (#{ptr  struct utmp, ut_id     } p, 4                   ))
+        <*> (peekByteStringNP (#{ptr  struct utmp, ut_user   } p, #{const UT_NAMESIZE}))
+        <*> (peekByteStringNP (#{ptr  struct utmp, ut_host   } p, #{const UT_HOSTSIZE}))
+        <*> (                 (#{peek struct utmp, ut_exit   } p))
+        <*> (fromIntegral <$> (#{peek struct utmp, ut_session} p :: IO IntCompat))
+        <*> (fromTimeval  <$> (#{peek struct utmp, ut_tv     } p))
+        <*> (                 (#{peek struct utmp, ut_addr_v6} p))
+    poke p u = do
+        #{                 poke struct utmp, ut_type   } p                        $ utType    u
+        #{                 poke struct utmp, ut_pid    } p          (fromIntegral $ utPid     u :: #{type pid_t})
+        pokeByteStringNP (#{ptr struct utmp, ut_line   } p, #{const UT_LINESIZE}) $ utLine    u
+        pokeByteStringNP (#{ptr struct utmp, ut_id     } p, 4                   ) $ utId      u
+        pokeByteStringNP (#{ptr struct utmp, ut_user   } p, #{const UT_NAMESIZE}) $ utUser    u
+        pokeByteStringNP (#{ptr struct utmp, ut_host   } p, #{const UT_HOSTSIZE}) $ utHost    u
+        #{                 poke struct utmp, ut_exit   } p                        $ utExit    u
+        #{                 poke struct utmp, ut_session} p          (fromIntegral $ utSession u :: IntCompat)
+        #{                 poke struct utmp, ut_tv     } p          (toTimeval    $ utTime    u)
+        #{                 poke struct utmp, ut_addr_v6} p                        $ utAddr    u
 
 -- Null-Padded ByteStrings
+
+peekByteStringNP :: CStringLen -> IO B.ByteString
+peekByteStringNP csl = B.takeWhile (/='\0') <$> B.packCStringLen csl
+
+pokeByteStringNP :: CStringLen -> B.ByteString -> IO ()
+pokeByteStringNP (dst, dstSize) = flip B.useAsCStringLen $ \(src, srcSize) -> do
+    let nCopy = min dstSize srcSize
+        nFill = dstSize - nCopy
+    copyBytes dst src nCopy
+    fillBytes (dst `plusPtr` nCopy) 0 nFill
+
+getByteStringNP :: Int -> Get B.ByteString
 getByteStringNP n = B.takeWhile (/='\0') <$> getByteString n
-putByteStringNP n s = putByteString s >> replicateM_ (n - B.length s) (putWord8 0)
+
+putByteStringNP :: Int -> B.ByteString -> Put
+putByteStringNP n s = do
+    putByteString $ B.take n s
+    replicateM_ (n - B.length s) (putWord8 0)
+
+getWordCompat :: Get IntCompat
+putWordCompat :: IntCompat -> Put
 
 #if __WORDSIZE_TIME64_COMPAT32
 getWordCompat = fromIntegral <$> getWord32host
@@ -147,15 +177,15 @@ putWordCompat = putWord64host . fromIntegral
 #endif
 
 instance Binary UTCTime where
-    get = fromTimeval <$> getWordCompat <*> getWordCompat
+    get = curry fromTimeval <$> getWordCompat <*> getWordCompat
     put t = let (s, u) = toTimeval t in putWordCompat s >> putWordCompat u
 
-fromTimeval :: (Integral n, Integral m) => n -> m -> UTCTime
-fromTimeval s u = d `addUTCTime` t
+fromTimeval :: (IntCompat, IntCompat) -> UTCTime
+fromTimeval (s, u) = d `addUTCTime` t
   where t = posixSecondsToUTCTime (fromIntegral s)
         d = fromRational (fromIntegral u % 10^6)
 
-toTimeval :: (Integral n, Integral m) => UTCTime -> (n, m)
+toTimeval :: UTCTime -> (IntCompat, IntCompat)
 toTimeval t = (s, u)
   where (s, f) = properFraction $ utcTimeToPOSIXSeconds t
         u = round $ f * 10^6
@@ -174,8 +204,8 @@ instance Binary Utmp where
         <*> getByteStringNP #{const UT_NAMESIZE}
         <*> getByteStringNP #{const UT_HOSTSIZE}
         <*> get
-        <*> getWordCompat
-        <*> (fromTimeval <$> getWordCompat <*> getWordCompat)
+        <*> (fromIntegral <$> getWordCompat)
+        <*> (curry fromTimeval <$> getWordCompat <*> getWordCompat)
         <*> getAddr
         <*  replicateM_ 20 getWord8 -- Reserved padding
     put u = do
@@ -187,7 +217,7 @@ instance Binary Utmp where
         putByteStringNP #{const UT_NAMESIZE}    $ utUser    u
         putByteStringNP #{const UT_HOSTSIZE}    $ utHost    u
         put                                     $ utExit    u
-        putWordCompat                           $ utSession u
+        putWordCompat . fromIntegral            $ utSession u
         put                                     $ utTime    u
         putAddr                                 $ utAddr    u
         replicateM_ 20 (putWord8 0) -- Reserved padding
