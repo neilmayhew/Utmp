@@ -2,17 +2,14 @@
 
 import Utmp
 
-import Control.Monad
-import Data.Functor
-import Data.List
 import Data.Time.Format
-import Data.Time.Locale.Compat
 import System.Environment
 
 #if !MIN_VERSION_time(1,5,0)
 parseTimeOrError _ = readTime
 #endif
 
+main :: IO ()
 main = do
     (time:files) <- getArgs
 

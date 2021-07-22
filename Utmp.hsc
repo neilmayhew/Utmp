@@ -1,4 +1,5 @@
 {-# LANGUAGE CPP, ForeignFunctionInterface #-}
+{-# OPTIONS_GHC -Wno-orphans #-}
 
 module Utmp where
 
@@ -10,24 +11,18 @@ import Data.Binary.Put
 import Data.Int
 import Data.Maybe
 import Data.Ratio
-import Data.Word
 import Data.Text as T (unpack)
 import Data.Text.Encoding (decodeUtf8)
 import Data.Time
 import Data.Time.Clock.POSIX
-import Data.Time.Format
-import Data.Time.Locale.Compat
 import Foreign.C.String
 import Foreign.C.Types
-import Foreign.Marshal.Alloc
-import Foreign.Marshal.Array
 import Foreign.Marshal.Utils
 import Foreign.Ptr
 import Foreign.Storable
-import Foreign.Storable.Tuple
+import Foreign.Storable.Tuple ()
 import Network.Socket
 import System.IO.Unsafe
-import Text.Printf
 
 import qualified Data.ByteString.Char8 as B
 import qualified Data.ByteString.Lazy  as L
@@ -95,10 +90,10 @@ data Utmp = Utmp
 instance Show Utmp where
     show u = unwords . map wrap . map ($u) $
         [show . utType, show . utPid,
-            unpack . utId, unpack . utUser, unpack . utLine, unpack . utHost,
+            unpack' . utId, unpack' . utUser, unpack' . utLine, unpack' . utHost,
             showAddr . utAddr, showTime . utTime]
       where wrap s = '[' : (s ++ "]")
-            unpack = T.unpack . decodeUtf8
+            unpack' = T.unpack . decodeUtf8
 
 showAddr :: HostAddress6 -> String
 showAddr (0,0,0,0) = ""
@@ -183,15 +178,17 @@ instance Binary UTCTime where
 fromTimeval :: (IntCompat, IntCompat) -> UTCTime
 fromTimeval (s, u) = d `addUTCTime` t
   where t = posixSecondsToUTCTime (fromIntegral s)
-        d = fromRational (fromIntegral u % 10^6)
+        d = fromRational (fromIntegral u % 10^(6::Int))
 
 toTimeval :: UTCTime -> (IntCompat, IntCompat)
 toTimeval t = (s, u)
   where (s, f) = properFraction $ utcTimeToPOSIXSeconds t
-        u = round $ f * 10^6
+        u = round $ f * 10^(6::Int)
 
 -- Don't change byte order -- needs to be the same in memory as on disk
+getAddr :: Get (Word32, Word32, Word32, Word32)
 getAddr = (,,,) <$> getWord32host  <*> getWord32host  <*> getWord32host  <*> getWord32host
+putAddr :: (Word32, Word32, Word32, Word32) -> PutM ()
 putAddr (a,b,c,d) = putWord32host a >> putWord32host b >> putWord32host c >> putWord32host d
 
 instance Binary Utmp where

@@ -3,33 +3,38 @@ module Main where
 import Utmp
 
 import Control.Monad
-import Data.Semigroup ((<>))
 import Data.Time
 import Data.Time.Clock.POSIX
 import Options.Applicative
 import System.Directory
 
+main :: IO ()
 main = run $ badLogins
-    <$> (option auto $ value 10
+    <$> option auto (  value 10
                     <> long "threshold"
                     <> short 't'
                     <> metavar "NUMBER"
                     <> help "Don't output anything less than this number of items")
-    <*> (strOption $ value "/var/lib/myprog/stamp"
+    <*> strOption  (  value "/var/lib/myprog/stamp"
                     <> long "stamp"
                     <> short 's'
                     <> metavar "STAMPFILE"
                     <> help "Location of the timestamp file")
-    <*> (strArguments $ value "/var/log/btmp"
+    <*> strArguments ( value "/var/log/btmp"
                     <> metavar "LOGFILE ..."
                     <> help "Log files to be scanned")
 
+run :: Parser (IO a) -> IO a
 run = join . execParser . flip info fullDesc . (helper <*>)
 
+strArguments :: Mod ArgumentFields String -> Parser [String]
 strArguments = some' strArgument
+
+arguments :: ReadM a -> Mod ArgumentFields a -> Parser [a]
 arguments r = some' (argument r)
 
-some' bldr mods = (:) <$> (bldr mods) <*> many (bldr idm)
+some' :: (Alternative f, Monoid t) => (t -> f a) -> t -> f [a]
+some' bldr mods = (:) <$> bldr mods <*> many (bldr idm)
 
 badLogins :: Int -> String -> [String] -> IO ()
 badLogins limit stamppath logfiles = do
@@ -43,6 +48,7 @@ badLogins limit stamppath logfiles = do
 
     writeFile stamppath $ show count
 
+getModificationTime' :: FilePath -> IO UTCTime
 getModificationTime' f = do
     exists <- doesFileExist f
     if exists

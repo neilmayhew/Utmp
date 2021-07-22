@@ -13,6 +13,7 @@ import Text.Printf
 
 import qualified Data.ByteString.Lazy as B
 
+main :: IO ()
 main = do
     files <- getArgs
 
