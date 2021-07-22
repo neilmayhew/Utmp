@@ -1,6 +1,5 @@
 .rsync-filter
-.cabal-sandbox
-cabal.sandbox.config
-*.hi
-*.o
 /dist/
+/dist-newstyle/
+/result
+/stamp
