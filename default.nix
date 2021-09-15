@@ -1,6 +1,6 @@
-{ stdenv, lib, mkDerivation,
-    network, optparse-applicative, storable-tuple, text, parsec, time-locale-compat,
-    profiling ? false
+{ mkDerivation, base, binary, bytestring, directory, lib, network
+, optparse-applicative, storable-tuple, text, time
+, time-locale-compat
 }:
 mkDerivation {
   pname = "Utmp";
@@ -8,10 +8,13 @@ mkDerivation {
   src = lib.cleanSource ./.;
   isLibrary = true;
   isExecutable = true;
-  enableLibraryProfiling = profiling;
-  enableExecutableProfiling = profiling;
+  libraryHaskellDepends = [
+    base binary bytestring network storable-tuple text time
+    time-locale-compat
+  ];
   executableHaskellDepends = [
-    network  optparse-applicative  storable-tuple  text  parsec  time-locale-compat
+    base binary bytestring directory optparse-applicative time
+    time-locale-compat
   ];
   description = "A library for reading and writing Linux utmp files";
   license = lib.licenses.mit;
