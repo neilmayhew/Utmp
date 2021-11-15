@@ -10,6 +10,10 @@ category:            System
 build-type:          Simple
 cabal-version:       >=1.10
 
+flag werror
+  description:         Use-Werror
+  default:             False
+
 library
   exposed-modules:     Utmp
   other-extensions:    CPP, ForeignFunctionInterface
@@ -17,6 +21,9 @@ library
   build-tools:         hsc2hs
   default-language:    Haskell2010
   ghc-options:        -Wall -Wcompat
+                      -Wredundant-constraints -Wincomplete-uni-patterns -Wincomplete-record-updates
+  if flag(werror)
+    ghc-options:      -Werror
 
 executable TestUtmp
   main-is:             TestUtmp.hs
@@ -24,12 +31,18 @@ executable TestUtmp
   build-depends:       Utmp, base, binary, bytestring
   default-language:    Haskell2010
   ghc-options:        -Wall -Wcompat
+                      -Wredundant-constraints -Wincomplete-uni-patterns -Wincomplete-record-updates
+  if flag(werror)
+    ghc-options:      -Werror
 
 executable CountsByDay
   main-is:             CountsByDay.hs
   build-depends:       Utmp, base, time
   default-language:    Haskell2010
   ghc-options:        -Wall -Wcompat
+                      -Wredundant-constraints -Wincomplete-uni-patterns -Wincomplete-record-updates
+  if flag(werror)
+    ghc-options:      -Werror
 
 executable CountsSince
   main-is:             CountsSince.hs
@@ -37,6 +50,9 @@ executable CountsSince
   build-depends:       Utmp, base, time, time-locale-compat
   default-language:    Haskell2010
   ghc-options:        -Wall -Wcompat
+                      -Wredundant-constraints -Wincomplete-uni-patterns -Wincomplete-record-updates
+  if flag(werror)
+    ghc-options:      -Werror
 
 executable BadLogins
   main-is:             BadLogins.hs
@@ -45,3 +61,6 @@ executable BadLogins
                        optparse-applicative
   default-language:    Haskell2010
   ghc-options:        -Wall -Wcompat
+                      -Wredundant-constraints -Wincomplete-uni-patterns -Wincomplete-record-updates
+  if flag(werror)
+    ghc-options:      -Werror
