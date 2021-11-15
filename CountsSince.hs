@@ -13,7 +13,7 @@ main :: IO ()
 main = do
     (time:files) <- getArgs
 
-    let !since = parseTimeOrError True defaultTimeLocale "%F %T%Q %z" time
+    let !since = parseTimeOrError True defaultTimeLocale "%F %T%Q %Z" time
 
     logins <- concat <$> mapM decodeFile files
 
