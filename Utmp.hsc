@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP, ForeignFunctionInterface #-}
+{-# LANGUAGE CPP #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 module Utmp where
@@ -88,10 +88,18 @@ data Utmp = Utmp
     } deriving (Eq)
 
 instance Show Utmp where
-    show u = unwords . map wrap . map ($u) $
-        [show . utType, show . utPid,
-            unpack' . utId, unpack' . utUser, unpack' . utLine, unpack' . utHost,
-            showAddr . utAddr, showTime . utTime]
+    show u = unwords . map wrap $
+        sequenceA
+            [ show . utType
+            , show . utPid
+            , unpack' . utId
+            , unpack' . utUser
+            , unpack' . utLine
+            , unpack' . utHost
+            , showAddr . utAddr
+            , showTime . utTime
+            ]
+            u
       where wrap s = '[' : (s ++ "]")
             unpack' = T.unpack . decodeUtf8
 
