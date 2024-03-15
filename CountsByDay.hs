@@ -1,10 +1,13 @@
 import Utmp
 
 import Control.Monad
-import Data.List (group, sort)
+import Data.List (sort)
+import Data.List.NonEmpty (group)
 import Data.Time
 import System.Environment
 import Text.Printf
+
+import qualified Data.List.NonEmpty as NE
 
 -- Reads input from utmp files
 
@@ -15,7 +18,7 @@ main = do
 
     forM_ (group . sort $ days) $ \d -> do
         let n = length d
-        putStrLn $ printf "%s %d" (show $ head d) n
+        putStrLn $ printf "%s %d" (show $ NE.head d) n
 
     putStrLn $ printf "%10s %d" "" $ length days
 
